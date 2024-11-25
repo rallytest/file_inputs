@@ -36,12 +36,16 @@ jobs:
 
           echo "Parsed MCC-MNC pairs:"
           cat "$mcc_mnc_file"
+          
+          # Debugging server extraction
+          echo "Extracting servers from input.txt:"
+          awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file"
 
-          # Extract target servers and create a filtered inventory file
-          echo "[all]" > "$target_inventory"
+          # Debugging inventory filtering
           awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file" | \
           while read -r server; do
-            grep "^$server " inventory.ini >> "$target_inventory"
+            echo "Looking for server: $server in inventory.ini"
+            grep "^$server " inventory.ini >> "$target_inventory" || echo "Server $server not found in inventory.ini"
           done
 
           echo "Filtered inventory file:"
