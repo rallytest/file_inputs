@@ -1,7 +1,11 @@
-MCC-MNC: 
-	100-11
-	100-12
-	110-11
+MCC-MNC:
+    100-11
+    100-12
+    110-11
+Inbound:
+    a:test1
+    b:test2
+    c:test3  	
 SERVERS:
     cmg95c
     ccm

@@ -1,64 +1,53 @@
-name: Parse MCC-MNC and Execute Commands
+name: Ansible Workflow with Parse Input
 
 on:
   workflow_dispatch:
     inputs:
       input_file:
-        description: "Path to the input.txt file containing MCC-MNC and server details"
+        description: "Path to the input file"
+        default: "input.txt"
         required: true
 
 jobs:
-  parse_and_execute:
+  parse-and-execute:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+    # Step 1: Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # Step 2: Parse input.txt for MCC-MNC and servers
-      - name: Parse MCC-MNC and Servers
-        id: parse_input
-        run: |
-          input_file="${{ github.event.inputs.input_file }}"
-          mcc_mnc_file="parsed_mcc_mnc.txt"
-          target_inventory="target_inventory.ini"
+    # Step 2: Run parse_input.sh
+    - name: Parse Input File
+      id: parse_input
+      run: |
+        input_file="${{ github.event.inputs.input_file }}"
+        chmod +x parse_input.sh
+        ./parse_input.sh "$input_file"
+        
+        # Output for the next steps
+        echo "mcc_mnc_file=$(pwd)/parsed_mcc_mnc.txt" >> $GITHUB_ENV
+        echo "inbound_file=$(pwd)/parsed_inbound.txt" >> $GITHUB_ENV
+        echo "target_inventory=$(pwd)/target_inventory.ini" >> $GITHUB_ENV
 
-          # Extract MCC-MNC pairs
-          awk '/MCC-MNC:/ {flag=1; next} /SERVERS:/ {flag=0} flag {gsub(/\t/, ""); print}' "$input_file" | \
-          while read -r line; do
-            if [[ "$line" =~ ([0-9]{3})-([0-9]{2}) ]]; then
-              mcc="${BASH_REMATCH[1]}"
-              mnc="${BASH_REMATCH[2]}"
-              echo "mcc=$mcc,mnc=$mnc" >> "$mcc_mnc_file"
-            fi
-          done
+    # Step 3: Execute Ansible Playbook
+    - name: Run Ansible Playbook
+      run: |
+        ansible-playbook -i "$target_inventory" playbook.yml
+      env:
+        target_inventory: ${{ env.target_inventory }}
 
-          echo "Parsed MCC-MNC pairs:"
-          cat "$mcc_mnc_file"
-          
-          # Debugging server extraction
-          echo "Extracting servers from input.txt:"
-          awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file"
-
-          # Debugging inventory filtering
-          awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file" | \
-          while read -r server; do
-            echo "Looking for server: $server in inventory.ini"
-            grep "^$server " inventory.ini >> "$target_inventory" || echo "Server $server not found in inventory.ini"
-          done
-
-          echo "Filtered inventory file:"
-          cat "$target_inventory"
-
-      # Step 3: Install Ansible
-      - name: Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-
-      # Step 4: Execute Ansible Playbook
-      - name: Run Ansible Playbook
-        run: |
-          ansible-playbook -i target_inventory.ini ansible_scripts/send_mcc_mnc_commands.yml
+    # Step 4: Log Results
+    - name: Display Parsing Results
+      run: |
+        echo "Parsed MCC-MNC pairs:"
+        cat "$mcc_mnc_file"
+        echo "Parsed Inbound pairs:"
+        cat "$inbound_file"
+        echo "Filtered Target Inventory:"
+        cat "$target_inventory"
+      env:
+        mcc_mnc_file: ${{ env.mcc_mnc_file }}
+        inbound_file: ${{ env.inbound_file }}
+        target_inventory: ${{ env.target_inventory }}
 
