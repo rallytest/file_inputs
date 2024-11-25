@@ -1,0 +1,21 @@
+---
+- name: Print MCC-MNC and Run Hostname Command on Servers
+  hosts: all
+  vars:
+    mcc_mnc_pairs: "{{ lookup('file', 'parsed_mcc_mnc.txt').splitlines() }}"
+  tasks:
+    - name: Execute MCC-MNC and hostname commands
+      shell: |
+        echo "Running commands on server: $(hostname)"
+        {% for pair in mcc_mnc_pairs %}
+        mcc="{{ pair.split(',')[0].split('=')[1] }}"
+        mnc="{{ pair.split(',')[1].split('=')[1] }}"
+        echo "mcc=$mcc"
+        echo "mnc=$mnc"
+        {% endfor %}
+      register: server_output
+
+    - name: Show output from servers
+      debug:
+        msg: "{{ server_output.stdout_lines }}"
+
