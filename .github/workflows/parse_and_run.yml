@@ -33,7 +33,7 @@ jobs:
     # Step 3: Execute Ansible Playbook
     - name: Run Ansible Playbook
       run: |
-        ansible-playbook -i "$target_inventory" playbook.yml
+        ansible-playbook -i "$target_inventory" send_mcc_mnc_commands.yml 
       env:
         target_inventory: ${{ env.target_inventory }}
 
