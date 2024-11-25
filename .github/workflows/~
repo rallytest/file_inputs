@@ -16,13 +16,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Parse input.txt for MCC-MNC and servers
+      # Step 2: Parse input.txt
       - name: Parse MCC-MNC and Servers
         id: parse_input
         run: |
           input_file="${{ github.event.inputs.input_file }}"
           mcc_mnc_file="parsed_mcc_mnc.txt"
-          target_inventory="target_inventory.ini"
 
           # Extract MCC-MNC pairs
           awk '/MCC-MNC:/ {flag=1; next} /SERVERS:/ {flag=0} flag {gsub(/\t/, ""); print}' "$input_file" | \
@@ -37,16 +36,6 @@ jobs:
           echo "Parsed MCC-MNC pairs:"
           cat "$mcc_mnc_file"
 
-          # Extract target servers and create a filtered inventory file
-          echo "[all]" > "$target_inventory"
-          awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file" | \
-          while read -r server; do
-            grep "^$server " inventory.ini >> "$target_inventory"
-          done
-
-          echo "Filtered inventory file:"
-          cat "$target_inventory"
-
       # Step 3: Install Ansible
       - name: Install Ansible
         run: |
@@ -56,5 +45,5 @@ jobs:
       # Step 4: Execute Ansible Playbook
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i target_inventory.ini ansible_scripts/send_mcc_mnc_commands.yml
+          ansible-playbook -i inventory.ini ansible_scripts/send_mcc_mnc_commands.yml
 

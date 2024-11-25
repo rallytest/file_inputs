@@ -1,0 +1,8 @@
+MCC-MNC: 
+	100-11
+	100-12
+	110-11
+SERVERS:
+    cmg95c
+    ccm
+
