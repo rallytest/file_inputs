@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define input and output files
-input_file="input.txt"
+input_file="$1"
 mcc_mnc_file="parsed_mcc_mnc.txt"
 inbound_file="parsed_inbound.txt"
 target_inventory="target_inventory.ini"
@@ -34,7 +34,7 @@ awk '/Inbound:/ {flag=1; next} /SERVERS:/ {flag=0} flag {gsub(/\t/, ""); print}'
 echo "Parsed Inbound pairs:"
 cat "$inbound_file"
 
-# Parse target servers and filter inventory
+# Filter target servers from inventory
 echo "Filtering target servers..."
 echo "[all]" > "$target_inventory"
 awk '/SERVERS:/ {flag=1; next} {if (flag) {gsub(/\t/, ""); print}}' "$input_file" | \
