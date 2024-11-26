@@ -1,0 +1,8 @@
+---
+- hosts: all
+  tasks:
+    - name: Send Inbound commands
+      debug:
+        msg: "Processing Inbound pair: {{ item }}"
+      with_items: "{{ lookup('file', inbound_file).splitlines() }}"
+

@@ -7,6 +7,9 @@ on:
         description: "Path to the input file"
         default: "input.txt"
         required: true
+      tag:
+        description: "Specify the tag to execute (MCC-MNC or Inbound)"
+        required: true
 
 jobs:
   parse-and-execute:
@@ -24,17 +27,26 @@ jobs:
         input_file="${{ github.event.inputs.input_file }}"
         chmod +x parse_input.sh
         ./parse_input.sh "$input_file"
-        
+
         # Output for the next steps
         echo "mcc_mnc_file=$(pwd)/parsed_mcc_mnc.txt" >> $GITHUB_ENV
         echo "inbound_file=$(pwd)/parsed_inbound.txt" >> $GITHUB_ENV
         echo "target_inventory=$(pwd)/target_inventory.ini" >> $GITHUB_ENV
 
-    # Step 3: Execute Ansible Playbook
+    # Step 3: Execute Ansible Playbook based on tag
     - name: Run Ansible Playbook
       run: |
-        ansible-playbook -i "$target_inventory" ./ansible_scripts/send_mcc_mnc_commands.yml 
+        if [ "${{ github.event.inputs.tag }}" == "MCC-MNC" ]; then
+          ansible-playbook -i "$target_inventory" ./ansible_scripts/send_mcc_mnc_commands.yml -e "mcc_mnc_file=$mcc_mnc_file"
+        elif [ "${{ github.event.inputs.tag }}" == "Inbound" ]; then
+          ansible-playbook -i "$target_inventory" ./ansible_scripts/send_inbound_commands.yml -e "inbound_file=$inbound_file"
+        else
+          echo "Invalid tag specified. Use 'MCC-MNC' or 'Inbound'."
+          exit 1
+        fi
       env:
+        mcc_mnc_file: ${{ env.mcc_mnc_file }}
+        inbound_file: ${{ env.inbound_file }}
         target_inventory: ${{ env.target_inventory }}
 
     # Step 4: Log Results
